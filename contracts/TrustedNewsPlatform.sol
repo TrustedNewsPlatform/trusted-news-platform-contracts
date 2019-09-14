@@ -106,6 +106,10 @@ contract TrustedNewsPlatform {
 
     // Getters
 
+    function isHashValid(bytes32 _newsIpfsHash) public view returns(bool) {
+        return news[_newsIpfsHash].publisher != address(0);
+    }
+
     function getNewsPublisher(bytes32 _newsIpfsHash) public view returns(address) {
         return news[_newsIpfsHash].publisher;
     }
