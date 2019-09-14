@@ -63,6 +63,8 @@ contract TrustedNewsPlatform {
         _;
     }
 
+    // State changing functions
+
     function publishNews(bytes32 _newsIpfsHash, address[] memory _requiredApprovals) public
     hashIsNotTaken(_newsIpfsHash)
     {
@@ -100,5 +102,27 @@ contract TrustedNewsPlatform {
     {
         news[_newsIpfsHash].approvals[msg.sender] = false;
         emit NewsDisapproved(_newsIpfsHash, msg.sender, _explanationIpfsHash);
+    }
+
+    // Getters
+
+    function getNewsPublisher(bytes32 _newsIpfsHash) public view returns(address) {
+        return news[_newsIpfsHash].publisher;
+    }
+
+    function getNewsConcerns(bytes32 _newsIpfsHash) public view returns(address[] memory) {
+        return news[_newsIpfsHash].concerns;
+    }
+
+    function isNewsApprovedBy(bytes32 _newsIpfsHash, address _approver) public view returns(bool) {
+        return news[_newsIpfsHash].approvals[_approver];
+    }
+
+    function getNewsRemainingApprovals(bytes32 _newsIpfsHash) public view returns(uint) {
+        return news[_newsIpfsHash].remainingApprovals;
+    }
+
+    function GetNewsConcerning(address entity) public view returns(bytes32[] memory) {
+        return newsConcerning[entity];
     }
 }
