@@ -7,10 +7,9 @@ contract TrustedNewsPlatform {
 
     struct News {
         address publisher;
-        address[] requireApprovals;
+        address[] concerns;
         mapping(address => bool) approvals;
-
-        bool isFake;
+        uint remainingApprovals;
     }
 
     // Events
@@ -54,47 +53,41 @@ contract TrustedNewsPlatform {
     modifier isApproverValid(bytes32 _newsIpfsHash) {
         bool isValid = false;
 
-        for(uint i = 0; i < news[_newsIpfsHash].requireApprovals.length; i++) {
-            if(msg.sender == news[_newsIpfsHash].requireApprovals[i]) {
+        for(uint i = 0; i < news[_newsIpfsHash].concerns.length; i++) {
+            if(msg.sender == news[_newsIpfsHash].concerns[i]) {
                 isValid = true;
+                break;
             }
         }
         require(isValid, "Invalid approver");
         _;
     }
 
-    function publishNews(bytes32 _newsIpfsHash, address[] memory _requiresApprovals) public
+    function publishNews(bytes32 _newsIpfsHash, address[] memory _requiredApprovals) public
     hashIsNotTaken(_newsIpfsHash)
     {
         news[_newsIpfsHash] = News({
             publisher: msg.sender,
-            requireApprovals: _requiresApprovals,
-            isFake: true
+            concerns: _requiredApprovals,
+            remainingApprovals: _requiredApprovals.length
         });
-        emit NewsPublished(msg.sender, _requiresApprovals, _newsIpfsHash);
+        for(uint i = 0; i < _requiredApprovals.length; i++) {
+            newsConcerning[_requiredApprovals[i]].push(_newsIpfsHash);
+        }
+        emit NewsPublished(msg.sender, _requiredApprovals, _newsIpfsHash);
     }
 
     function approveNews(bytes32 _newsIpfsHash) public
     doesNewsExist(_newsIpfsHash)
     isApproverValid(_newsIpfsHash)
     {
+        require(!news[_newsIpfsHash].approvals[msg.sender], "You already approved this news");
+
         news[_newsIpfsHash].approvals[msg.sender] = true;
+        news[_newsIpfsHash].remainingApprovals--;
 
-        uint numberOfApprovals;
-
-        for(uint i = 0; i < news[_newsIpfsHash].requireApprovals.length; i++) {
-            if(news[_newsIpfsHash].approvals[news[_newsIpfsHash].requireApprovals[i]]) {
-                numberOfApprovals++;
-            }
-        }
-
-        if(numberOfApprovals == news[_newsIpfsHash].requireApprovals.length) {
-            news[_newsIpfsHash].isFake = false;
-
-            for(uint i = 0; i < news[_newsIpfsHash].requireApprovals.length; i++) {
-                newsConcerning[news[_newsIpfsHash].requireApprovals[i]].push(_newsIpfsHash);
-            }
-
+        if(news[_newsIpfsHash].remainingApprovals == 0)
+        {
             emit NewsMarkedAsNotFake(_newsIpfsHash);
         }
 

@@ -18,10 +18,11 @@
  *
  */
 
-// const HDWalletProvider = require('truffle-hdwallet-provider');
+const PrivateKeyProvider = require("truffle-privatekey-provider");
+const path = require("path");
 // const infuraKey = "fj4jll3k.....";
 //
-// const fs = require('fs');
+const fs = require("fs");
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
 module.exports = {
@@ -42,11 +43,21 @@ module.exports = {
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
     //
-    // development: {
-    //  host: "127.0.0.1",     // Localhost (default: none)
-    //  port: 8545,            // Standard Ethereum port (default: none)
-    //  network_id: "*",       // Any network (default: none)
-    // },
+    development: {
+      host: "127.0.0.1", // Localhost (default: none)
+      port: 8545, // Standard Ethereum port (default: none)
+      network_id: "*" // Any network (default: none),
+    },
+    xeno: {
+      network_id: "*", // Any network (default: none),
+      provider: () =>
+        new PrivateKeyProvider(
+          fs.readFileSync(path.join(__dirname, ".privatekey"), {
+            encoding: "utf-8"
+          }),
+          "https://xeno.yt:8545"
+        )
+    }
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
