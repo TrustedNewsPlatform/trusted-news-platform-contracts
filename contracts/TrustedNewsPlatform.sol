@@ -122,7 +122,16 @@ contract TrustedNewsPlatform {
         return news[_newsIpfsHash].remainingApprovals;
     }
 
-    function GetNewsConcerning(address entity) public view returns(bytes32[] memory) {
-        return newsConcerning[entity];
+    function getNewsConcerning(address _entity) public view returns(bytes32[] memory) {
+        return newsConcerning[_entity];
+    }
+
+    function getNewsConceringCount(address _entity) public view returns(uint) {
+        return newsConcerning[_entity].length;
+    }
+
+    function getNewsConceringByID(address entity, uint _id) public view returns(bytes32) {
+        require(_id < newsConcerning[entity].length, "Document with the given id does not exist");
+        return newsConcerning[entity][_id];
     }
 }
