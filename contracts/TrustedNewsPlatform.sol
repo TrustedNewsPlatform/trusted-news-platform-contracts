@@ -9,7 +9,9 @@ contract TrustedNewsPlatform {
         address publisher;
         address[] concerns;
         mapping(address => bool) approvals;
+        mapping(address => bool) didVote;
         uint remainingApprovals;
+        uint publishmentTimestamp;
     }
 
     // Events
@@ -17,7 +19,8 @@ contract TrustedNewsPlatform {
     event NewsPublished(
         address indexed publisher,
         address[] indexed concerns,
-        bytes32 newsIpfsHash
+        bytes32 newsIpfsHash,
+        uint publishmentTimestamp
     );
     event NewsApproved(
         bytes32 indexed newsIpfsHash,
@@ -63,6 +66,11 @@ contract TrustedNewsPlatform {
         _;
     }
 
+    modifier didNotVote(bytes32 _newsIpfsHash) {
+        require(!news[_newsIpfsHash].didVote[msg.sender], "Sorry you already voted");
+        _;
+    }
+
     // State changing functions
 
     function publishNews(bytes32 _newsIpfsHash, address[] memory _requiredApprovals) public
@@ -71,17 +79,19 @@ contract TrustedNewsPlatform {
         news[_newsIpfsHash] = News({
             publisher: msg.sender,
             concerns: _requiredApprovals,
-            remainingApprovals: _requiredApprovals.length
+            remainingApprovals: _requiredApprovals.length,
+            publishmentTimestamp: block.timestamp
         });
         for(uint i = 0; i < _requiredApprovals.length; i++) {
             newsConcerning[_requiredApprovals[i]].push(_newsIpfsHash);
         }
-        emit NewsPublished(msg.sender, _requiredApprovals, _newsIpfsHash);
+        emit NewsPublished(msg.sender, _requiredApprovals, _newsIpfsHash, block.timestamp);
     }
 
     function approveNews(bytes32 _newsIpfsHash) public
     doesNewsExist(_newsIpfsHash)
     isApproverValid(_newsIpfsHash)
+    didNotVote(_newsIpfsHash)
     {
         require(!news[_newsIpfsHash].approvals[msg.sender], "You already approved this news");
 
@@ -93,14 +103,19 @@ contract TrustedNewsPlatform {
             emit NewsMarkedAsNotFake(_newsIpfsHash);
         }
 
+        news[_newsIpfsHash].didVote[msg.sender] = true;
+
         emit NewsApproved(_newsIpfsHash, msg.sender);
     }
 
     function disapproveNews(bytes32 _newsIpfsHash, bytes32 _explanationIpfsHash) public
     doesNewsExist(_newsIpfsHash)
     isApproverValid(_newsIpfsHash)
+    didNotVote(_newsIpfsHash)
     {
         news[_newsIpfsHash].approvals[msg.sender] = false;
+        news[_newsIpfsHash].didVote[msg.sender] = true;
+
         emit NewsDisapproved(_newsIpfsHash, msg.sender, _explanationIpfsHash);
     }
 
@@ -137,5 +152,13 @@ contract TrustedNewsPlatform {
     function getNewsConceringByID(address entity, uint _id) public view returns(bytes32) {
         require(_id < newsConcerning[entity].length, "Document with the given id does not exist");
         return newsConcerning[entity][_id];
+    }
+
+    function didVote(bytes32 _newsIpfsHash, address _entity) public view returns(bool) {
+        return news[_newsIpfsHash].didVote[_entity];
+    }
+
+    function getNewsPublishmentTimestamp(bytes32 _newsIpfsHash) public view returns(uint) {
+        return news[_newsIpfsHash].publishmentTimestamp;
     }
 }
